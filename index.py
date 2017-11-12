@@ -2,13 +2,12 @@
 
 import gi
 gi.require_version('WebKit', '3.0')
-from gi.repository import Gtk, Gdk, Gio, WebKit
-import os, requests, bs4, urllib.request
+from gi.repository import Gtk, Gdk, Gio, WebKit, Notify
+import os, requests, bs4, urllib.request, time
 
-# dependencies: gir1.2-webkit-3.0
+# dependencies: gir1.2-webkit-3.0, notify
 
 class App(Gtk.Window):
-	
 	def __init__(self):
 		Gtk.Window.__init__(self, title="XKCD Viewer")
 
@@ -94,9 +93,35 @@ class App(Gtk.Window):
 		self.get_comic_url()
 		self.load()
 
-		
+
+	def save_comic(self, dialog):
+		response = dialog.run()
+		if response == Gtk.ResponseType.OK:
+			canSave = True
+			# download image
+			url = dialog.get_filename()
+			os.chdir(url)
+			print(self.url)
+			
+			os.system('wget ' + self.comicUrl)
+			dialog.destroy()
+			time.sleep(1.0)
+			# notification 
+			Notify.init('xkcd')
+			saved = Notify.Notification.new("Default Title","Default Body")
+			saved.update("'" + self.title + "' saved successfully")
+			saved.show()
+		else: 
+			print('error')
+			dialog.destroy()
+				
+
 	def downloadBtn_activate(self, downloadBtn):
-		pass
+		dialog = Gtk.FileChooserDialog('Save Comic to drive', self, 
+				Gtk.FileChooserAction.SELECT_FOLDER,
+				(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, 
+				Gtk.STOCK_SAVE, Gtk.ResponseType.OK))
+		self.save_comic(dialog)
 
 	
 	def zoomIn(self, w, x, y, z):
@@ -109,8 +134,21 @@ class App(Gtk.Window):
 		
 	def load(self):
 		# load webview with url for comic image + set subtitle of titlebar to name of the comic
-		self.webview.load_uri(self.comicUrl)	
-		
+		home = os.path.expanduser('~')  # $HOME
+		xkcdFolder = home + '/.xkcd'
+		print(xkcdFolder)
+		if not os.path.exists(xkcdFolder):   # if xkcdFolder isn't present
+			os.chdir(os.path.expanduser('~'))
+			os.makedirs('.xkcd')
+			os.chdir('.xkcd')
+		else:
+			os.chdir(xkcdFolder)  # go into folder
+		with open('comic.html', 'w') as f:
+			# html markup to center  image
+			f.write('<html>\n<center>\n<img src="' + self.comicUrl + '"/>\n</center>\n</html>')  
+			
+		self.webview.open(xkcdFolder + '/comic.html')
+			
 		res = requests.get(self.url)  # download current/next/prev comic
 		soup = bs4.BeautifulSoup(res.text, 'lxml') # create bs4 object of res
 		self.title = soup.select('#ctitle') # select <div id="ctitle'>
