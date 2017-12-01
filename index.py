@@ -5,7 +5,7 @@ gi.require_version('WebKit', '3.0')
 from gi.repository import Gtk, Gdk, Gio, WebKit, Notify
 import os, requests, bs4, urllib.request, time
 
-# dependencies: gir1.2-webkit-3.0, notify
+# dependencies: webkit, notify, bs4
 
 class App(Gtk.Window):
 	def __init__(self):
@@ -51,10 +51,8 @@ class App(Gtk.Window):
 		# webview to load and display web data		
 		self.webview = WebKit.WebView()	
 		self.webview.set_full_content_zoom(True)
-		scroll = Gtk.ScrolledWindow(hexpand=True, vexpand=True)
-		scroll.set_size_request(700, 500)
-		scroll.add(self.webview)
-		self.add(scroll)
+		
+		self.add(self.webview)
 		
 		self.url = "http://xkcd.com"
 		
@@ -150,7 +148,7 @@ class App(Gtk.Window):
 		self.webview.open(xkcdFolder + '/comic.html')
 			
 		res = requests.get(self.url)  # download current/next/prev comic
-		soup = bs4.BeautifulSoup(res.text, 'lxml') # create bs4 object of res
+		soup = bs4.BeautifulSoup(res.text) # create bs4 object of res
 		self.title = soup.select('#ctitle') # select <div id="ctitle'>
 		self.title = self.title[0].getText() 
 		print(self.title)
@@ -163,7 +161,7 @@ class App(Gtk.Window):
 			res.raise_for_status()
 		except Exception as e:
 			print("failed")
-		soup = bs4.BeautifulSoup(res.text, 'lxml')
+		soup = bs4.BeautifulSoup(res.text)
 		
 		# get url for current xkcd.com comic
 		comicElem = soup.select('#comic img') # url of comic located after <div id='comic'> and in img tag
@@ -192,4 +190,4 @@ def main():
 	
 	
 main()
-Gtk.main()		
+Gtk.main() 
